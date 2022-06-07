@@ -1,6 +1,3 @@
-<img align="right" src="src/assets/logo.png">
+# Detect launches and landings in paragliding tracklogs (.igc files)
 
-# Starting point for canvas-based Typescript projects
-
-Originally based on the wonderful
-[noclip.website](https://github.com/magcius/noclip.website)
+This tool analyzes an .igc file and outputs all detected launching and landing locations. The output can then be imported into a mapping tool such as Gaia for finding nearby potential takeoffs. 
