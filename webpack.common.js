@@ -7,7 +7,7 @@ const webpack = require('webpack');
 
 // @NOTE: These need to be updated per-project
 const COMMIT_HASH = gitRevision.commithash();
-const GITHUB_URL = 'https://github.com/themikelester/ts-boilerplate';
+const GITHUB_URL = 'https://github.com/themikelester/igc-detect';
 const GTAG_ID = 'Some Google Analytics ID';
 
 module.exports = {
