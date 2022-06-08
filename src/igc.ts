@@ -30,7 +30,11 @@ export function parseIGC(filename: String, text: String) {
         // ------------------------------------------------    
         // Example: B 144820 4247731N 00033427W A 00000 02526
         if (line[0] == 'B') {
-            const matches = assertDefined(line.match(kBRecordRegex));
+            const matches = line.match(kBRecordRegex);
+            if( !matches ) { 
+                console.warn( "Found bad B record: " + line );
+                continue;
+            }
 
             const hours = parseInt(matches[1]);
             const mins = parseInt(matches[2]);
