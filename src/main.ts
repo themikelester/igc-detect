@@ -17,6 +17,7 @@ class Tracklog {
 class Main {
     public paused: boolean = false;
     public tracklogs: Tracklog[] = [];
+    public map: L.Map;
 
     constructor() {
         this.init();
@@ -29,11 +30,11 @@ class Main {
         this._onResize();
 
         // Map Setup
-        const map = L.map('map').setView([51.505, -0.09], 13);
+        this.map = L.map('map').setView([51.505, -0.09], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap'
-        }).addTo(map);
+        }).addTo(this.map);
 
         // Listen for new igc files
         const fileChooser = assertDefined(document.getElementById('filechooser')) as HTMLInputElement;
@@ -47,10 +48,9 @@ class Main {
     }
 
     private async onFilesChanged(files: FileList) {
-        const fileReader = new FileReader();
-
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
+            const fileReader = new FileReader();
             const igcText = await fileReader.readAsText(file);
             fileReader.onload = () => this.parseIGC(fileReader.result as String);
         }
@@ -59,7 +59,7 @@ class Main {
     private parseIGC(text: String) {
         const lines = text.split(/\r\n|\n/);
 
-        const tracklog = new Tracklog(); 
+        const tracklog = new Tracklog();
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
@@ -85,7 +85,7 @@ class Main {
                 const date = new Date();
                 date.setUTCHours(hours, mins, secs);
 
-                tracklog.points.push( {
+                tracklog.points.push({
                     latitude,
                     longitude,
                     altitude: gpsAlt,
@@ -97,6 +97,12 @@ class Main {
 
         this.tracklogs.push(tracklog);
         console.log(tracklog);
+
+        const latlngs = tracklog.points.map(point => [point.latitude, point.longitude]) as L.LatLngTuple[];
+        const polyline = L.polyline(latlngs, {color: 'red'}).addTo(this.map);
+
+        // zoom the map to the polyline
+        this.map.fitBounds(polyline.getBounds());
     }
 }
 
