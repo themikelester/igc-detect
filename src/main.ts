@@ -1,6 +1,7 @@
 
 import { assert, assertDefined } from './util';
 import { GITHUB_REVISION_URL, IS_DEVELOPMENT } from './version';
+import * as L from "leaflet";
 
 class Main {
     public toplevel: HTMLElement;
@@ -17,14 +18,17 @@ class Main {
         this.toplevel = document.createElement('div');
         document.body.appendChild(this.toplevel);
 
-        this.canvas = document.createElement('canvas');
-
-        // Initialize Viewer
-
-        this.toplevel.appendChild(this.canvas);
         window.onresize = this._onResize.bind(this);
         this._onResize();
 
+        // Map Setup
+        const map = L.map('map').setView([51.505, -0.09], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // Listen for new igc files
         const fileChooser = assertDefined(document.getElementById('filechooser')) as HTMLInputElement;
         fileChooser.addEventListener("change", (event: Event) => {
             this.onFilesChanged(assertDefined(fileChooser.files));
