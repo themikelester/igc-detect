@@ -24,10 +24,33 @@ class Main {
 
         // Map Setup
         this.map = L.map('map').setView([51.505, -0.09], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap'
+        });
+
+        const googleHybrid = L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        });
+
+        const googleSat = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        });
+
+        const googleTerrain = L.tileLayer('http://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',{
+            maxZoom: 20,
+            subdomains:['mt0','mt1','mt2','mt3']
         }).addTo(this.map);
+
+        var tileOptions = {
+            "Open streetmap": osm,
+            "Google: Hybrid": googleHybrid,
+            "Google: Satellite": googleSat,
+            "Google: Terrain": googleTerrain,
+        };
+        L.control.layers(tileOptions).addTo(this.map);
 
         // Add a new icon for landings
         this.landingIcon = new L.Icon({
@@ -56,14 +79,13 @@ class Main {
             const fileReader = new FileReader();
             fileReader.readAsText(file);
             fileReader.onload = () => {
-                const tracklog = parseIGC( files[i].name, fileReader.result as String);
-                this.onTracklogLoaded( tracklog );
+                const tracklog = parseIGC(files[i].name, fileReader.result as String);
+                this.onTracklogLoaded(tracklog);
             }
         }
     }
 
-    private onTracklogLoaded( tracklog: Tracklog )
-    {
+    private onTracklogLoaded(tracklog: Tracklog) {
         computeDerivedPoints(tracklog);
 
         this.tracklogs.push(tracklog);
@@ -84,19 +106,19 @@ class Main {
         }
 
         // Draw line segments between each takeoff/landing marker
-        drawTrackSegment(tracklog, 0, landingIdxs[0], 'red').addTo(this.map);
+        // drawTrackSegment(tracklog, 0, landingIdxs[0], 'red').addTo(this.map);
+        // for (let i = 0; i < takeoffIdxs.length; i++) {
+        //     const startIdx = takeoffIdxs[i];
+        //     const endIdx = landingIdxs[i];
+        //     const finishIdx = (i + 1 < takeoffIdxs.length) ? takeoffIdxs[i + 1] : tracklog.points.length;
 
-        for (let i = 0; i < takeoffIdxs.length; i++) {
-            const startIdx = takeoffIdxs[i];
-            const endIdx = landingIdxs[i];
-            const finishIdx = (i + 1 < takeoffIdxs.length) ? takeoffIdxs[i + 1] : tracklog.points.length;
-
-            drawTrackSegment(tracklog, startIdx, endIdx, 'green').addTo(this.map);
-            drawTrackSegment(tracklog, endIdx, finishIdx, 'red').addTo(this.map);
-        }
+        //     drawTrackSegment(tracklog, startIdx, endIdx, 'green').addTo(this.map);
+        //     drawTrackSegment(tracklog, endIdx, finishIdx, 'red').addTo(this.map);
+        // }
 
         const fullTrack = drawTrackSegment(tracklog, 0, tracklog.points.length, 'red');
-        this.tracklogGroup.addLayer( fullTrack );
+        fullTrack.addTo(this.map);
+        this.tracklogGroup.addLayer(fullTrack);
 
         // zoom the map to the tracklog
         this.map.fitBounds(this.tracklogGroup.getBounds());
