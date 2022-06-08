@@ -9,6 +9,7 @@ class Main {
     public paused: boolean = false;
     public tracklogs: Tracklog[] = [];
     public map: L.Map;
+    public tracklogGroup: L.FeatureGroup = L.featureGroup();
     public landingIcon: L.Icon;
 
     constructor() {
@@ -55,7 +56,7 @@ class Main {
             const fileReader = new FileReader();
             fileReader.readAsText(file);
             fileReader.onload = () => {
-                const tracklog = parseIGC(fileReader.result as String);
+                const tracklog = parseIGC( files[i].name, fileReader.result as String);
                 this.onTracklogLoaded( tracklog );
             }
         }
@@ -71,9 +72,7 @@ class Main {
         const takeoffIdxs = findTakeoffs(tracklog);
         const landingIdxs = findLandings(tracklog);
 
-        console.log(takeoffIdxs);
-        console.log(landingIdxs);
-
+        // Draw takeoff and landings as markers on the map
         for (let i = 0; i < takeoffIdxs.length; i++) {
             const point = tracklog.points[takeoffIdxs[i]];
             L.marker([point.latitude, point.longitude]).addTo(this.map);
@@ -96,8 +95,11 @@ class Main {
             drawTrackSegment(tracklog, endIdx, finishIdx, 'red').addTo(this.map);
         }
 
-        // zoom the map to the polyline
-        this.map.fitBounds(drawTrackSegment(tracklog, 0, tracklog.points.length, 'red').getBounds());
+        const fullTrack = drawTrackSegment(tracklog, 0, tracklog.points.length, 'red');
+        this.tracklogGroup.addLayer( fullTrack );
+
+        // zoom the map to the tracklog
+        this.map.fitBounds(this.tracklogGroup.getBounds());
     }
 }
 

@@ -11,6 +11,7 @@ export class TrackPoint {
 };
 
 export class Tracklog {
+    name: String;
     points: TrackPoint[] = [];
 }
 
@@ -113,10 +114,11 @@ function averageSpeed(tracklog: Tracklog, startIdx: number, durationSec: number,
     let sampleCount = 0;
     let samples = [];
 
-    while (elapsedTotal < durationSec || sampleCount < minSamples) {
+    while (elapsedTotal < Math.abs(durationSec) || sampleCount < minSamples) {
         i = startIdx + (durationSec < 0 ? -1 : 1);
+        if( i < 0 || i >= tracklog.points.length ) break;
+
         const point = tracklog.points[i];
-        if( !point ) break;
 
         samples[sampleCount++] = {
             speed: point.speed,
