@@ -5,9 +5,9 @@ export class TrackPoint {
     time: number; // Milliseconds since the epoch
 
     // Derived data
-    distance?: number; // Difference from last point in meters
-    elapsed?: number; // Difference in seconds from last point
-    speed?: number; // Km/h
+    distance: number; // Difference from last point in meters
+    elapsed: number; // Difference in seconds from last point
+    speed: number; // Km/h
 };
 
 export class Tracklog {
@@ -65,7 +65,7 @@ export function findTakeoffs(tracklog: Tracklog): number[] {
         if( potentialTakeoff ) 
         {
             // When speed averages <2kmh for at least 1 minute or 2 samples, 
-            // and then averages >12kmh for more than 5 seconds
+            // and then averages >12kmh for more than 30 seconds
             // Compute average speed for previous minute
             const prevAverageSpeed = averageSpeed( tracklog, i, -60, 2 );
             const nextAverageSpeed = averageSpeed( tracklog, i, 30, 4 );
@@ -77,6 +77,33 @@ export function findTakeoffs(tracklog: Tracklog): number[] {
     }
 
     return takeoffPoints;
+}
+
+export function findLandings(tracklog: Tracklog): number[] {
+    if (tracklog.points.length == 0) return [];
+
+    const landingPoints = [];
+    for (let i = 1; i < tracklog.points.length; i++) {
+        let prevPoint = tracklog.points[i - 1];
+        let curPoint = tracklog.points[i];
+
+        // Consider a sample if there is a large change in speed
+        const potentialLanding = (prevPoint.speed - curPoint.speed > 5);
+
+        if( potentialLanding ) 
+        {
+            // When the previous speed averages >12kmh for more than 30 seconds
+            // and then speed averages <5kmh for at least 1 minute or 2 samples,
+            const prevAverageSpeed = averageSpeed( tracklog, i, -30, 4 );
+            const nextAverageSpeed = averageSpeed( tracklog, i, 60, 2 );
+
+            if( prevAverageSpeed > 12.0 && nextAverageSpeed < 5.0 ) {
+                landingPoints.push(i);
+            }
+        }
+    }
+
+    return landingPoints;
 }
 
 function averageSpeed(tracklog: Tracklog, startIdx: number, durationSec: number, minSamples: number = 2) {

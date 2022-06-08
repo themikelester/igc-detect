@@ -1,13 +1,14 @@
 
 import { assert, assertDefined } from './util';
 import { GITHUB_REVISION_URL, IS_DEVELOPMENT } from './version';
-import { computeDerivedPoints, findTakeoffs, Tracklog } from './tracklog';
+import { computeDerivedPoints, findLandings, findTakeoffs, Tracklog } from './tracklog';
 import * as L from "leaflet";
 
 class Main {
     public paused: boolean = false;
     public tracklogs: Tracklog[] = [];
     public map: L.Map;
+    public landingIcon: L.Icon;
 
     constructor() {
         this.init();
@@ -25,6 +26,16 @@ class Main {
             maxZoom: 19,
             attribution: '© OpenStreetMap'
         }).addTo(this.map);
+
+        // Add a new icon for landings
+        this.landingIcon = new L.Icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
 
         // Listen for new igc files
         const fileChooser = assertDefined(document.getElementById('filechooser')) as HTMLInputElement;
@@ -92,10 +103,19 @@ class Main {
         const polyline = L.polyline(latlngs, { color: 'red' }).addTo(this.map);
 
         const takeoffIdxs = findTakeoffs(tracklog);
+        const landingIdxs = findLandings(tracklog);
+
         console.log(takeoffIdxs);
+        console.log(landingIdxs);
+
         for (let i = 0; i < takeoffIdxs.length; i++) {
             const point = tracklog.points[takeoffIdxs[i]];
             L.marker([point.latitude, point.longitude]).addTo(this.map);
+        }
+
+        for (let i = 0; i < landingIdxs.length; i++) {
+            const point = tracklog.points[landingIdxs[i]];
+            L.marker([point.latitude, point.longitude], { icon: this.landingIcon }).addTo(this.map);
         }
 
         // zoom the map to the polyline
