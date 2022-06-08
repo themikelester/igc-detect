@@ -99,9 +99,6 @@ class Main {
         this.tracklogs.push(tracklog);
         console.log(tracklog);
 
-        const latlngs = tracklog.points.map(point => [point.latitude, point.longitude]) as L.LatLngTuple[];
-        const polyline = L.polyline(latlngs, { color: 'red' }).addTo(this.map);
-
         const takeoffIdxs = findTakeoffs(tracklog);
         const landingIdxs = findLandings(tracklog);
 
@@ -118,8 +115,20 @@ class Main {
             L.marker([point.latitude, point.longitude], { icon: this.landingIcon }).addTo(this.map);
         }
 
+        // Draw line segments between each takeoff/landing marker
+        drawTrackSegment(tracklog, 0, landingIdxs[0], 'red').addTo(this.map);
+
+        for (let i = 0; i < takeoffIdxs.length; i++) {
+            const startIdx = takeoffIdxs[i];
+            const endIdx = landingIdxs[i];
+            const finishIdx = (i + 1 < takeoffIdxs.length) ? takeoffIdxs[i + 1] : tracklog.points.length;
+
+            drawTrackSegment(tracklog, startIdx, endIdx, 'green').addTo(this.map);
+            drawTrackSegment(tracklog, endIdx, finishIdx, 'red').addTo(this.map);
+        }
+
         // zoom the map to the polyline
-        this.map.fitBounds(polyline.getBounds());
+        this.map.fitBounds(drawTrackSegment(tracklog, 0, tracklog.points.length, 'red').getBounds());
     }
 }
 
@@ -142,3 +151,8 @@ declare global {
     }
 }
 
+function drawTrackSegment(tracklog: Tracklog, startIdx: number, endIdx: number, color: string) {
+    const segment = tracklog.points.slice(startIdx, endIdx);
+    const latlngs = segment.map(point => [point.latitude, point.longitude]) as L.LatLngTuple[];
+    return L.polyline(latlngs, { color });
+}
