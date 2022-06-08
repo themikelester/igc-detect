@@ -79,29 +79,23 @@ class Main {
             // 0 123456 78901234 567890123 4 56789 01234    
             // B 144820 4247731N 00033427W A 00000 02526
             if (line[0] == 'B') {
-                const timeStr = line.substring(1, 7);
-                const lat = line.substring(7, 15);
-                const lon = line.substring(15, 24);
-                const fixValid = line.substring(24, 25) == 'A';
-                const baroAlt = line.substring(25, 30);
-                const gpsAlt = line.substring(30, 37);
+                const B_RECORD_RE = /^B(\d{2})(\d{2})(\d{2})(\d{2})(\d{5})([NS])(\d{3})(\d{5})([EW])([AV])(-\d{4}|\d{5})(-\d{4}|\d{5})/;
+                
+                const matches = assertDefined( line.match(B_RECORD_RE) );
 
-                const latValid = lat[7] == 'N' || lat[7] == 'S';
-                const lonValid = lon[8] == 'E' || lon[8] == 'W';
-                assert(latValid && lonValid && fixValid, "Invalid B record found: " + line);
+                const hours = parseInt(matches[1]);
+                const mins = parseInt(matches[2]);
+                const secs = parseInt(matches[3]);
+                const latitude = (parseInt(matches[4]) + parseInt(matches[5]) / 60000.0) * (matches[6] === 'S' ? -1 : 1);
+                const longitude = (parseInt(matches[7]) + parseInt(matches[8]) / 60000.0) * (matches[9] === 'W' ? -1 : 1);
+                const baroAlt = parseInt(matches[11]);
+                const gpsAlt = parseInt(matches[12]);
 
                 const time = new Date();
-                time.setUTCHours(
-                    parseInt(timeStr.substring(0, 2)),
-                    parseInt(timeStr.substring(2, 4)),
-                    parseInt(timeStr.substring(4, 6)));
+                time.setUTCHours( hours, mins, secs );
                 times.push(time);
 
-                console.log( 
-                    parseInt(timeStr.substring(0, 2)),
-                    parseInt(timeStr.substring(2, 4)),
-                    parseInt(timeStr.substring(4, 6)));
-                console.log(time, lat, lon, baroAlt, gpsAlt);
+                console.log(time, latitude, longitude, baroAlt, gpsAlt);
             }
         }
     }
