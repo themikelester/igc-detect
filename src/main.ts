@@ -1,18 +1,8 @@
 
 import { assert, assertDefined } from './util';
 import { GITHUB_REVISION_URL, IS_DEVELOPMENT } from './version';
+import { computeDerivedPoints, findTakeoffs, Tracklog } from './tracklog';
 import * as L from "leaflet";
-
-class TrackPoint {
-    longitude: number; // In decimal degrees
-    latitude: number; // In decimal degrees
-    altitude: number; // In meters
-    time: number; // Seconds since epoch
-};
-
-class Tracklog {
-    points: TrackPoint[] = [];
-}
 
 class Main {
     public paused: boolean = false;
@@ -63,7 +53,6 @@ class Main {
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            console.log(line);
 
             // B Time   Latitude Longitude V Baro  Gps    
             // B HHMMSS DDMMmmmN DDDMMmmmW A PPPPP GGGGG
@@ -91,15 +80,23 @@ class Main {
                     altitude: gpsAlt,
                     time: date.getTime()
                 });
-
             }
         }
+
+        computeDerivedPoints(tracklog);
 
         this.tracklogs.push(tracklog);
         console.log(tracklog);
 
         const latlngs = tracklog.points.map(point => [point.latitude, point.longitude]) as L.LatLngTuple[];
-        const polyline = L.polyline(latlngs, {color: 'red'}).addTo(this.map);
+        const polyline = L.polyline(latlngs, { color: 'red' }).addTo(this.map);
+
+        const takeoffIdxs = findTakeoffs(tracklog);
+        console.log(takeoffIdxs);
+        for (let i = 0; i < takeoffIdxs.length; i++) {
+            const point = tracklog.points[takeoffIdxs[i]];
+            L.marker([point.latitude, point.longitude]).addTo(this.map);
+        }
 
         // zoom the map to the polyline
         this.map.fitBounds(polyline.getBounds());
