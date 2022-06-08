@@ -3,10 +3,20 @@ import { assert, assertDefined } from './util';
 import { GITHUB_REVISION_URL, IS_DEVELOPMENT } from './version';
 import * as L from "leaflet";
 
+class TrackPoint {
+    longitude: number; // In decimal degrees
+    latitude: number; // In decimal degrees
+    altitude: number; // In meters
+    time: number; // Seconds since epoch
+};
+
+class Tracklog {
+    points: TrackPoint[] = [];
+}
+
 class Main {
-    public toplevel: HTMLElement;
-    public canvas: HTMLCanvasElement;
     public paused: boolean = false;
+    public tracklogs: Tracklog[] = [];
 
     constructor() {
         this.init();
@@ -14,9 +24,6 @@ class Main {
 
     public async init() {
         console.log(`Source for this build available at ${GITHUB_REVISION_URL}`);
-
-        this.toplevel = document.createElement('div');
-        document.body.appendChild(this.toplevel);
 
         window.onresize = this._onResize.bind(this);
         this._onResize();
@@ -33,25 +40,7 @@ class Main {
         fileChooser.addEventListener("change", (event: Event) => {
             this.onFilesChanged(assertDefined(fileChooser.files));
         });
-
-        this._updateLoop(window.performance.now());
     }
-
-    public setPaused(v: boolean): void {
-        if (this.paused === v)
-            return;
-
-        this.paused = true;
-        if (!this.paused)
-            window.requestAnimationFrame(this._updateLoop);
-    }
-
-    private _updateLoop = (time: number) => {
-        if (this.paused)
-            return;
-
-        window.requestAnimationFrame(this._updateLoop);
-    };
 
     private _onResize() {
         // Handle canvas resize
@@ -70,9 +59,7 @@ class Main {
     private parseIGC(text: String) {
         const lines = text.split(/\r\n|\n/);
 
-        const coords = [];
-        const alts = [];
-        const times = [];
+        const tracklog = new Tracklog(); 
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
@@ -84,8 +71,8 @@ class Main {
             // B 144820 4247731N 00033427W A 00000 02526
             if (line[0] == 'B') {
                 const B_RECORD_RE = /^B(\d{2})(\d{2})(\d{2})(\d{2})(\d{5})([NS])(\d{3})(\d{5})([EW])([AV])(-\d{4}|\d{5})(-\d{4}|\d{5})/;
-                
-                const matches = assertDefined( line.match(B_RECORD_RE) );
+
+                const matches = assertDefined(line.match(B_RECORD_RE));
 
                 const hours = parseInt(matches[1]);
                 const mins = parseInt(matches[2]);
@@ -95,13 +82,21 @@ class Main {
                 const baroAlt = parseInt(matches[11]);
                 const gpsAlt = parseInt(matches[12]);
 
-                const time = new Date();
-                time.setUTCHours( hours, mins, secs );
-                times.push(time);
+                const date = new Date();
+                date.setUTCHours(hours, mins, secs);
 
-                console.log(time, latitude, longitude, baroAlt, gpsAlt);
+                tracklog.points.push( {
+                    latitude,
+                    longitude,
+                    altitude: gpsAlt,
+                    time: date.getTime()
+                });
+
             }
         }
+
+        this.tracklogs.push(tracklog);
+        console.log(tracklog);
     }
 }
 
