@@ -3,6 +3,7 @@ import { assert, assertDefined } from './util';
 import { GITHUB_REVISION_URL, IS_DEVELOPMENT } from './version';
 import { computeDerivedPoints, findLandings, findTakeoffs, Tracklog } from './tracklog';
 import * as L from "leaflet";
+import { parseIGC } from './igc';
 
 class Main {
     public paused: boolean = false;
@@ -53,82 +54,47 @@ class Main {
             const file = files[i];
             const fileReader = new FileReader();
             const igcText = await fileReader.readAsText(file);
-            fileReader.onload = () => this.parseIGC(fileReader.result as String);
-        }
-    }
+            fileReader.onload = () => {
+                const tracklog = parseIGC(fileReader.result as String);
 
-    private parseIGC(text: String) {
-        const lines = text.split(/\r\n|\n/);
+                computeDerivedPoints(tracklog);
 
-        const tracklog = new Tracklog();
+                this.tracklogs.push(tracklog);
+                console.log(tracklog);
 
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
+                const takeoffIdxs = findTakeoffs(tracklog);
+                const landingIdxs = findLandings(tracklog);
 
-            // B Time   Latitude Longitude V Baro  Gps    
-            // B HHMMSS DDMMmmmN DDDMMmmmW A PPPPP GGGGG
-            // 0 123456 78901234 567890123 4 56789 01234    
-            // B 144820 4247731N 00033427W A 00000 02526
-            if (line[0] == 'B') {
-                const B_RECORD_RE = /^B(\d{2})(\d{2})(\d{2})(\d{2})(\d{5})([NS])(\d{3})(\d{5})([EW])([AV])(-\d{4}|\d{5})(-\d{4}|\d{5})/;
+                console.log(takeoffIdxs);
+                console.log(landingIdxs);
 
-                const matches = assertDefined(line.match(B_RECORD_RE));
+                for (let i = 0; i < takeoffIdxs.length; i++) {
+                    const point = tracklog.points[takeoffIdxs[i]];
+                    L.marker([point.latitude, point.longitude]).addTo(this.map);
+                }
 
-                const hours = parseInt(matches[1]);
-                const mins = parseInt(matches[2]);
-                const secs = parseInt(matches[3]);
-                const latitude = (parseInt(matches[4]) + parseInt(matches[5]) / 60000.0) * (matches[6] === 'S' ? -1 : 1);
-                const longitude = (parseInt(matches[7]) + parseInt(matches[8]) / 60000.0) * (matches[9] === 'W' ? -1 : 1);
-                const baroAlt = parseInt(matches[11]);
-                const gpsAlt = parseInt(matches[12]);
+                for (let i = 0; i < landingIdxs.length; i++) {
+                    const point = tracklog.points[landingIdxs[i]];
+                    L.marker([point.latitude, point.longitude], { icon: this.landingIcon }).addTo(this.map);
+                }
 
-                const date = new Date();
-                date.setUTCHours(hours, mins, secs);
+                // Draw line segments between each takeoff/landing marker
+                drawTrackSegment(tracklog, 0, landingIdxs[0], 'red').addTo(this.map);
 
-                tracklog.points.push({
-                    latitude,
-                    longitude,
-                    altitude: gpsAlt,
-                    time: date.getTime()
-                });
+                for (let i = 0; i < takeoffIdxs.length; i++) {
+                    const startIdx = takeoffIdxs[i];
+                    const endIdx = landingIdxs[i];
+                    const finishIdx = (i + 1 < takeoffIdxs.length) ? takeoffIdxs[i + 1] : tracklog.points.length;
+
+                    drawTrackSegment(tracklog, startIdx, endIdx, 'green').addTo(this.map);
+                    drawTrackSegment(tracklog, endIdx, finishIdx, 'red').addTo(this.map);
+                }
+
+                // zoom the map to the polyline
+                this.map.fitBounds(drawTrackSegment(tracklog, 0, tracklog.points.length, 'red').getBounds());
+            }
             }
         }
-
-        computeDerivedPoints(tracklog);
-
-        this.tracklogs.push(tracklog);
-        console.log(tracklog);
-
-        const takeoffIdxs = findTakeoffs(tracklog);
-        const landingIdxs = findLandings(tracklog);
-
-        console.log(takeoffIdxs);
-        console.log(landingIdxs);
-
-        for (let i = 0; i < takeoffIdxs.length; i++) {
-            const point = tracklog.points[takeoffIdxs[i]];
-            L.marker([point.latitude, point.longitude]).addTo(this.map);
-        }
-
-        for (let i = 0; i < landingIdxs.length; i++) {
-            const point = tracklog.points[landingIdxs[i]];
-            L.marker([point.latitude, point.longitude], { icon: this.landingIcon }).addTo(this.map);
-        }
-
-        // Draw line segments between each takeoff/landing marker
-        drawTrackSegment(tracklog, 0, landingIdxs[0], 'red').addTo(this.map);
-
-        for (let i = 0; i < takeoffIdxs.length; i++) {
-            const startIdx = takeoffIdxs[i];
-            const endIdx = landingIdxs[i];
-            const finishIdx = (i + 1 < takeoffIdxs.length) ? takeoffIdxs[i + 1] : tracklog.points.length;
-
-            drawTrackSegment(tracklog, startIdx, endIdx, 'green').addTo(this.map);
-            drawTrackSegment(tracklog, endIdx, finishIdx, 'red').addTo(this.map);
-        }
-
-        // zoom the map to the polyline
-        this.map.fitBounds(drawTrackSegment(tracklog, 0, tracklog.points.length, 'red').getBounds());
     }
 }
 
