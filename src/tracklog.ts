@@ -116,6 +116,7 @@ function averageSpeed(tracklog: Tracklog, startIdx: number, durationSec: number,
     while (elapsedTotal < durationSec || sampleCount < minSamples) {
         i = startIdx + (durationSec < 0 ? -1 : 1);
         const point = tracklog.points[i];
+        if( !point ) break;
 
         samples[sampleCount++] = {
             speed: point.speed,
