@@ -53,6 +53,8 @@ class Main {
         };
         L.control.layers(tileOptions).addTo(this.map);
 
+        this.tracklogGroup.addTo(this.map);
+
         // Add a new icon for landings
         this.landingIcon = new L.Icon({
             iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
@@ -75,6 +77,8 @@ class Main {
     }
 
     private onFilesChanged(files: FileList) {
+        this.tracklogGroup.clearLayers();
+
         const promises: Promise<Tracklog>[] = [];
         for (let i = 0; i < files.length; i++) {
             promises[i] = new Promise((resolve, reject) => {
@@ -113,18 +117,18 @@ class Main {
             for (let i = 0; i < tracklog.takeoffs.length; i++) {
                 const point = tracklog.points[tracklog.takeoffs[i]];
                 takeoffPoints.push(point);
-                L.marker([point.latitude, point.longitude]).addTo(this.map);
+                const takeoffMarker = L.marker([point.latitude, point.longitude]).addTo(this.tracklogGroup);
             }
 
             for (let i = 0; i < tracklog.landings.length; i++) {
                 const point = tracklog.points[tracklog.landings[i]];
                 landingPoints.push(point);
-                L.marker([point.latitude, point.longitude], { icon: this.landingIcon }).addTo(this.map);
+                const landingMarker = L.marker([point.latitude, point.longitude], { icon: this.landingIcon }).addTo(this.tracklogGroup);
+                this.tracklogGroup.addLayer(landingMarker);
             }
     
             const fullTrack = drawTrackSegment(tracklog, 0, tracklog.points.length, 'red');
-            fullTrack.addTo(this.map);
-            this.tracklogGroup.addLayer(fullTrack);
+            fullTrack.addTo(this.tracklogGroup);
     
             // zoom the map to the tracklog
             this.map.fitBounds(this.tracklogGroup.getBounds());
