@@ -96,6 +96,10 @@ class Main {
 
     private onTracklogLoaded(tracklog: Tracklog) {
         computeDerivedPoints(tracklog);
+
+        tracklog.takeoffs = findTakeoffs(tracklog);
+        tracklog.landings = findLandings(tracklog);
+
         this.tracklogs.push(tracklog);
     }
 
@@ -106,25 +110,15 @@ class Main {
         for (let i = 0; i < tracklogs.length; i++) {
             const tracklog = tracklogs[i];
 
-            const takeoffIdxs = findTakeoffs(tracklog);
-            const landingIdxs = findLandings(tracklog);
-
-            for (let i = 0; i < takeoffIdxs.length; i++) {
-                takeoffPoints.push(tracklog.points[takeoffIdxs[i]]);
-            }
-
-            for (let i = 0; i < landingIdxs.length; i++) {
-                landingPoints.push(tracklog.points[landingIdxs[i]]);
-            }
-
-            // Draw takeoff and landings as markers on the map
-            for (let i = 0; i < takeoffIdxs.length; i++) {
-                const point = tracklog.points[takeoffIdxs[i]];
+            for (let i = 0; i < tracklog.takeoffs.length; i++) {
+                const point = tracklog.points[tracklog.takeoffs[i]];
+                takeoffPoints.push(point);
                 L.marker([point.latitude, point.longitude]).addTo(this.map);
             }
-    
-            for (let i = 0; i < landingIdxs.length; i++) {
-                const point = tracklog.points[landingIdxs[i]];
+
+            for (let i = 0; i < tracklog.landings.length; i++) {
+                const point = tracklog.points[tracklog.landings[i]];
+                landingPoints.push(point);
                 L.marker([point.latitude, point.longitude], { icon: this.landingIcon }).addTo(this.map);
             }
     
@@ -136,10 +130,8 @@ class Main {
             this.map.fitBounds(this.tracklogGroup.getBounds());
         }
 
-
         const gpxData = createGpx(takeoffPoints);
         const gpxBlob = new Blob([gpxData.toString()], { type: 'application/gpx+xml' });
-
         download({ filename: 'test.gpx', blob: gpxBlob });
     }
 }
