@@ -80,6 +80,11 @@ export function findTakeoffs(tracklog: Tracklog): number[] {
 
             if (prevAverageSpeed < 2.0 && nextAverageSpeed > 12.0) {
                 takeoffPoints.push(i);
+
+                // Skip forward 30 seconds (to avoid duplicates)
+                while ( ++i < tracklog.points.length ) {
+                    if( tracklog.points[ i ].time - curPoint.time > 30000 ) break;
+                }
             }
         }
     }
@@ -101,11 +106,16 @@ export function findLandings(tracklog: Tracklog): number[] {
         if (potentialLanding) {
             // When the previous speed averages >12kmh for more than 30 seconds
             // and then speed averages <5kmh for at least 1 minute or 2 samples,
-            const prevAverageSpeed = averageSpeed(tracklog, i, -30, 4);
+            const prevAverageSpeed = averageSpeed(tracklog, i, -30, 8);
             const nextAverageSpeed = averageSpeed(tracklog, i, 60, 2);
 
             if (prevAverageSpeed > 12.0 && nextAverageSpeed < 5.0) {
                 landingPoints.push(i);
+
+                // Skip forward 1 minute (to avoid duplicates)
+                while ( ++i < tracklog.points.length ) {
+                    if( tracklog.points[ i ].time - curPoint.time > 60000 ) break;
+                }
             }
         }
     }
