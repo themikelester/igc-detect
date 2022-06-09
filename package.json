@@ -21,7 +21,8 @@
     "webpack-merge": "^4.2.2"
   },
   "dependencies": {
-    "leaflet": "^1.8.0"
+    "leaflet": "^1.8.0",
+    "xmlbuilder": "^15.1.1"
   },
   "scripts": {
     "start": "webpack-dev-server --config webpack.dev.js",

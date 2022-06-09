@@ -4,6 +4,7 @@ import { GITHUB_REVISION_URL, IS_DEVELOPMENT } from './version';
 import { computeDerivedPoints, findLandings, findTakeoffs, Tracklog } from './tracklog';
 import * as L from "leaflet";
 import { parseIGC } from './igc';
+import { createGpx } from './gpx';
 
 class Main {
     public paused: boolean = false;
@@ -94,6 +95,8 @@ class Main {
         const takeoffIdxs = findTakeoffs(tracklog);
         const landingIdxs = findLandings(tracklog);
 
+        createGpx( tracklog, takeoffIdxs );
+
         // Draw takeoff and landings as markers on the map
         for (let i = 0; i < takeoffIdxs.length; i++) {
             const point = tracklog.points[takeoffIdxs[i]];
@@ -104,17 +107,6 @@ class Main {
             const point = tracklog.points[landingIdxs[i]];
             L.marker([point.latitude, point.longitude], { icon: this.landingIcon }).addTo(this.map);
         }
-
-        // Draw line segments between each takeoff/landing marker
-        // drawTrackSegment(tracklog, 0, landingIdxs[0], 'red').addTo(this.map);
-        // for (let i = 0; i < takeoffIdxs.length; i++) {
-        //     const startIdx = takeoffIdxs[i];
-        //     const endIdx = landingIdxs[i];
-        //     const finishIdx = (i + 1 < takeoffIdxs.length) ? takeoffIdxs[i + 1] : tracklog.points.length;
-
-        //     drawTrackSegment(tracklog, startIdx, endIdx, 'green').addTo(this.map);
-        //     drawTrackSegment(tracklog, endIdx, finishIdx, 'red').addTo(this.map);
-        // }
 
         const fullTrack = drawTrackSegment(tracklog, 0, tracklog.points.length, 'red');
         fullTrack.addTo(this.map);
