@@ -10,5 +10,5 @@ export function createGpx(tracklog: Tracklog, takeoffIdxs: number[]) {
     }
 
     const xml = gpx.end({ pretty: true });
-    console.log(xml);
+    return xml;
 }

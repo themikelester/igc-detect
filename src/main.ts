@@ -95,7 +95,10 @@ class Main {
         const takeoffIdxs = findTakeoffs(tracklog);
         const landingIdxs = findLandings(tracklog);
 
-        createGpx( tracklog, takeoffIdxs );
+        const gpxData = createGpx( tracklog, takeoffIdxs );
+        const gpxBlob = new Blob([gpxData.toString()], { type: 'application/gpx+xml'});
+
+        download({ filename: 'test.gpx', blob: gpxBlob });
 
         // Draw takeoff and landings as markers on the map
         for (let i = 0; i < takeoffIdxs.length; i++) {
@@ -141,3 +144,19 @@ function drawTrackSegment(tracklog: Tracklog, startIdx: number, endIdx: number, 
     const latlngs = segment.map(point => [point.latitude, point.longitude]) as L.LatLngTuple[];
     return L.polyline(latlngs, { color });
 }
+
+async function download({filename, blob}: {filename: string; blob: Blob}) {
+    const a: HTMLAnchorElement = document.createElement('a');
+    a.style.display = 'none';
+    document.body.appendChild(a);
+  
+    const url: string = window.URL.createObjectURL(blob);
+  
+    a.href = url;
+    a.download = `${filename}`;
+  
+    a.click();
+  
+    window.URL.revokeObjectURL(url);
+    a.parentElement?.removeChild(a);
+  };
