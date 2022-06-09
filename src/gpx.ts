@@ -6,7 +6,8 @@ export function createGpx(waypoints: TrackPoint[]) {
 
     for (let i = 0; i < waypoints.length; i++) {
         const point = waypoints[ i ];
-        gpx.element('wpt', { 'lat': point.latitude, 'lon': point.longitude, 'name': '2018 Takeoff' });
+        gpx.element('wpt', { 'lat': point.latitude, 'lon': point.longitude })
+            .element('name').text( '2018 Takeoff' );
     }
 
     const xml = gpx.end({ pretty: true });
