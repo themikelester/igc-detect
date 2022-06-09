@@ -40,9 +40,9 @@ class Main {
             subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
         });
 
-        const googleTerrain = L.tileLayer('http://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',{
+        const googleTerrain = L.tileLayer('http://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', {
             maxZoom: 20,
-            subdomains:['mt0','mt1','mt2','mt3']
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
         }).addTo(this.map);
 
         var tileOptions = {
@@ -75,48 +75,72 @@ class Main {
     }
 
     private onFilesChanged(files: FileList) {
+        const promises: Promise<Tracklog>[] = [];
         for (let i = 0; i < files.length; i++) {
-            const file = files[i];
-            const fileReader = new FileReader();
-            fileReader.readAsText(file);
-            fileReader.onload = () => {
-                const tracklog = parseIGC(files[i].name, fileReader.result as String);
-                this.onTracklogLoaded(tracklog);
-            }
+            promises[i] = new Promise((resolve, reject) => {
+                const file = files[i];
+                const fileReader = new FileReader();
+                fileReader.onload = () => {
+                    const tracklog = parseIGC(files[i].name, fileReader.result as String);
+                    this.onTracklogLoaded(tracklog);
+                    resolve(tracklog);
+                }
+                fileReader.onerror = reject;
+                fileReader.readAsText(file);
+            });
         }
+        Promise.all(promises).then(tracklogs => {
+            this.onAllTracklogsLoaded(tracklogs);
+        })
     }
 
     private onTracklogLoaded(tracklog: Tracklog) {
         computeDerivedPoints(tracklog);
-
         this.tracklogs.push(tracklog);
-        console.log(tracklog);
+    }
 
-        const takeoffIdxs = findTakeoffs(tracklog);
-        const landingIdxs = findLandings(tracklog);
+    private onAllTracklogsLoaded(tracklogs: Tracklog[]) {
+        const takeoffPoints = [];
+        const landingPoints = [];
 
-        const gpxData = createGpx( tracklog, takeoffIdxs );
-        const gpxBlob = new Blob([gpxData.toString()], { type: 'application/gpx+xml'});
+        for (let i = 0; i < tracklogs.length; i++) {
+            const tracklog = tracklogs[i];
+
+            const takeoffIdxs = findTakeoffs(tracklog);
+            const landingIdxs = findLandings(tracklog);
+
+            for (let i = 0; i < takeoffIdxs.length; i++) {
+                takeoffPoints.push(tracklog.points[takeoffIdxs[i]]);
+            }
+
+            for (let i = 0; i < landingIdxs.length; i++) {
+                landingPoints.push(tracklog.points[landingIdxs[i]]);
+            }
+
+            // Draw takeoff and landings as markers on the map
+            for (let i = 0; i < takeoffIdxs.length; i++) {
+                const point = tracklog.points[takeoffIdxs[i]];
+                L.marker([point.latitude, point.longitude]).addTo(this.map);
+            }
+    
+            for (let i = 0; i < landingIdxs.length; i++) {
+                const point = tracklog.points[landingIdxs[i]];
+                L.marker([point.latitude, point.longitude], { icon: this.landingIcon }).addTo(this.map);
+            }
+    
+            const fullTrack = drawTrackSegment(tracklog, 0, tracklog.points.length, 'red');
+            fullTrack.addTo(this.map);
+            this.tracklogGroup.addLayer(fullTrack);
+    
+            // zoom the map to the tracklog
+            this.map.fitBounds(this.tracklogGroup.getBounds());
+        }
+
+
+        const gpxData = createGpx(takeoffPoints);
+        const gpxBlob = new Blob([gpxData.toString()], { type: 'application/gpx+xml' });
 
         download({ filename: 'test.gpx', blob: gpxBlob });
-
-        // Draw takeoff and landings as markers on the map
-        for (let i = 0; i < takeoffIdxs.length; i++) {
-            const point = tracklog.points[takeoffIdxs[i]];
-            L.marker([point.latitude, point.longitude]).addTo(this.map);
-        }
-
-        for (let i = 0; i < landingIdxs.length; i++) {
-            const point = tracklog.points[landingIdxs[i]];
-            L.marker([point.latitude, point.longitude], { icon: this.landingIcon }).addTo(this.map);
-        }
-
-        const fullTrack = drawTrackSegment(tracklog, 0, tracklog.points.length, 'red');
-        fullTrack.addTo(this.map);
-        this.tracklogGroup.addLayer(fullTrack);
-
-        // zoom the map to the tracklog
-        this.map.fitBounds(this.tracklogGroup.getBounds());
     }
 }
 
@@ -145,18 +169,18 @@ function drawTrackSegment(tracklog: Tracklog, startIdx: number, endIdx: number, 
     return L.polyline(latlngs, { color });
 }
 
-async function download({filename, blob}: {filename: string; blob: Blob}) {
+async function download({ filename, blob }: { filename: string; blob: Blob }) {
     const a: HTMLAnchorElement = document.createElement('a');
     a.style.display = 'none';
     document.body.appendChild(a);
-  
+
     const url: string = window.URL.createObjectURL(blob);
-  
+
     a.href = url;
     a.download = `${filename}`;
-  
+
     a.click();
-  
+
     window.URL.revokeObjectURL(url);
     a.parentElement?.removeChild(a);
-  };
+};

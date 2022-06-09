@@ -13,6 +13,8 @@ export class TrackPoint {
 export class Tracklog {
     name: String;
     points: TrackPoint[] = [];
+    takeoffs: number[] = [];
+    landings: number[] = [];
 }
 
 // Return the distance (in meters) between two coordinates (in decimal degrees)
