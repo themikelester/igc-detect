@@ -18,7 +18,7 @@ export class Tracklog {
 }
 
 // Return the distance (in meters) between two coordinates (in decimal degrees)
-function haversineDistance(latA: number, lonA: number, latB: number, lonB: number): number {
+export function haversineDistance(latA: number, lonA: number, latB: number, lonB: number): number {
     var radius = 6371000; // Earth radius in meters     
 
     // Convert latitude and longitude to radians

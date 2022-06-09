@@ -1,7 +1,7 @@
 
 import { assert, assertDefined } from './util';
 import { GITHUB_REVISION_URL, IS_DEVELOPMENT } from './version';
-import { computeDerivedPoints, debugLanding, findLandings, findTakeoffs, Tracklog } from './tracklog';
+import { computeDerivedPoints, debugLanding, findLandings, findTakeoffs, haversineDistance, Tracklog } from './tracklog';
 import * as L from "leaflet";
 import { parseIGC } from './igc';
 import { createGpx } from './gpx';
@@ -116,7 +116,18 @@ class Main {
 
             for (let i = 0; i < tracklog.takeoffs.length; i++) {
                 const point = tracklog.points[tracklog.takeoffs[i]];
+
+                // Filter out duplicate takeoffs
+                let duplicate = false;
+                for (let i = 0; i < takeoffPoints.length; i++) {
+                    const existing = takeoffPoints[i];
+                    const distance = haversineDistance(existing.latitude, existing.longitude, point.latitude, point.longitude);
+                    if (distance < 100 ) { duplicate = true; break; }
+                }
+                if( duplicate ) { continue; }
+
                 takeoffPoints.push(point);
+
                 L.marker([point.latitude, point.longitude])
                     .on('click', e => onMarkerClicked(tracklog, tracklog.takeoffs[i]))
                     .addTo(this.tracklogGroup);
