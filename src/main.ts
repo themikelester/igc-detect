@@ -1,7 +1,7 @@
 
 import { assert, assertDefined } from './util';
 import { GITHUB_REVISION_URL, IS_DEVELOPMENT } from './version';
-import { computeDerivedPoints, findLandings, findTakeoffs, Tracklog } from './tracklog';
+import { computeDerivedPoints, debugLanding, findLandings, findTakeoffs, Tracklog } from './tracklog';
 import * as L from "leaflet";
 import { parseIGC } from './igc';
 import { createGpx } from './gpx';
@@ -117,19 +117,22 @@ class Main {
             for (let i = 0; i < tracklog.takeoffs.length; i++) {
                 const point = tracklog.points[tracklog.takeoffs[i]];
                 takeoffPoints.push(point);
-                const takeoffMarker = L.marker([point.latitude, point.longitude]).addTo(this.tracklogGroup);
+                L.marker([point.latitude, point.longitude])
+                    .on('click', e => onMarkerClicked(tracklog, tracklog.takeoffs[i]))
+                    .addTo(this.tracklogGroup);
             }
 
             for (let i = 0; i < tracklog.landings.length; i++) {
                 const point = tracklog.points[tracklog.landings[i]];
                 landingPoints.push(point);
-                const landingMarker = L.marker([point.latitude, point.longitude], { icon: this.landingIcon }).addTo(this.tracklogGroup);
-                this.tracklogGroup.addLayer(landingMarker);
+                L.marker([point.latitude, point.longitude], { icon: this.landingIcon })
+                    .on('click', e => onMarkerClicked(tracklog, tracklog.landings[i]))
+                    .addTo(this.tracklogGroup);
             }
-    
+
             const fullTrack = drawTrackSegment(tracklog, 0, tracklog.points.length, 'red');
             fullTrack.addTo(this.tracklogGroup);
-    
+
             // zoom the map to the tracklog
             this.map.fitBounds(this.tracklogGroup.getBounds());
         }
@@ -157,6 +160,10 @@ declare global {
     interface Window {
         debug: any;
     }
+}
+
+function onMarkerClicked(tracklog: Tracklog, index: number) {
+    debugLanding(tracklog, index);
 }
 
 function drawTrackSegment(tracklog: Tracklog, startIdx: number, endIdx: number, color: string) {

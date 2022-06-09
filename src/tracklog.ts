@@ -52,6 +52,12 @@ export function computeDerivedPoints(tracklog: Tracklog) {
         const distanceKm = curPoint.distance / 1000.0;
         curPoint.speed = distanceKm / timeDeltaHr;
     }
+
+    tracklog.points = tracklog.points.filter((p, i) =>
+        p.speed < 110 &&
+        p.distance < 100 &&
+        (p.speed - tracklog.points[Math.max(i - 1, 0)].speed) < 40
+    );
 }
 
 export function findTakeoffs(tracklog: Tracklog): number[] {
@@ -65,15 +71,14 @@ export function findTakeoffs(tracklog: Tracklog): number[] {
         // Consider a sample if there is a large change in speed
         const potentialTakeoff = (curPoint.speed - prevPoint.speed > 5);
 
-        if( potentialTakeoff ) 
-        {
+        if (potentialTakeoff) {
             // When speed averages <2kmh for at least 1 minute or 2 samples, 
             // and then averages >12kmh for more than 30 seconds
             // Compute average speed for previous minute
-            const prevAverageSpeed = averageSpeed( tracklog, i, -60, 2 );
-            const nextAverageSpeed = averageSpeed( tracklog, i, 30, 4 );
+            const prevAverageSpeed = averageSpeed(tracklog, i, -60, 2);
+            const nextAverageSpeed = averageSpeed(tracklog, i, 30, 4);
 
-            if( prevAverageSpeed < 2.0 && nextAverageSpeed > 12.0 ) {
+            if (prevAverageSpeed < 2.0 && nextAverageSpeed > 12.0) {
                 takeoffPoints.push(i);
             }
         }
@@ -93,20 +98,32 @@ export function findLandings(tracklog: Tracklog): number[] {
         // Consider a sample if there is a large change in speed
         const potentialLanding = (prevPoint.speed - curPoint.speed > 5);
 
-        if( potentialLanding ) 
-        {
+        if (potentialLanding) {
             // When the previous speed averages >12kmh for more than 30 seconds
             // and then speed averages <5kmh for at least 1 minute or 2 samples,
-            const prevAverageSpeed = averageSpeed( tracklog, i, -30, 4 );
-            const nextAverageSpeed = averageSpeed( tracklog, i, 60, 2 );
+            const prevAverageSpeed = averageSpeed(tracklog, i, -30, 4);
+            const nextAverageSpeed = averageSpeed(tracklog, i, 60, 2);
 
-            if( prevAverageSpeed > 12.0 && nextAverageSpeed < 5.0 ) {
+            if (prevAverageSpeed > 12.0 && nextAverageSpeed < 5.0) {
                 landingPoints.push(i);
             }
         }
     }
 
     return landingPoints;
+}
+
+export function debugLanding(tracklog: Tracklog, i: number) {
+    const nearby = tracklog.points.slice(i - 16, i + 16);
+    console.log(tracklog);
+    console.log(nearby.map(({ latitude, longitude, altitude, ...keep }) => Object.assign({}, keep, { time: new Date(keep.time) })));
+
+    // When the previous speed averages >12kmh for more than 30 seconds
+    // and then speed averages <5kmh for at least 1 minute or 2 samples,
+    const prevAverageSpeed = averageSpeed(tracklog, i, -30, 4);
+    const nextAverageSpeed = averageSpeed(tracklog, i, 60, 2);
+
+    console.log(prevAverageSpeed, nextAverageSpeed);
 }
 
 function averageSpeed(tracklog: Tracklog, startIdx: number, durationSec: number, minSamples: number = 2) {
@@ -117,8 +134,8 @@ function averageSpeed(tracklog: Tracklog, startIdx: number, durationSec: number,
     let samples = [];
 
     while (elapsedTotal < Math.abs(durationSec) || sampleCount < minSamples) {
-        i = startIdx + (durationSec < 0 ? -1 : 1);
-        if( i < 0 || i >= tracklog.points.length ) break;
+        i += (durationSec < 0 ? -1 : 1);
+        if (i < 0 || i >= tracklog.points.length) break;
 
         const point = tracklog.points[i];
 
@@ -132,8 +149,8 @@ function averageSpeed(tracklog: Tracklog, startIdx: number, durationSec: number,
 
     let averageSpeed = 0;
     for (let i = 0; i < sampleCount; i++) {
-        const weight = samples[ i ].elapsed / elapsedTotal;
-        averageSpeed += samples[ i ].speed * weight;
+        const weight = samples[i].elapsed / elapsedTotal;
+        averageSpeed += samples[i].speed * weight;
     }
 
     return averageSpeed;
