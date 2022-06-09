@@ -54,6 +54,7 @@ export function computeDerivedPoints(tracklog: Tracklog) {
     }
 
     tracklog.points = tracklog.points.filter((p, i) =>
+        p.elapsed < 100 &&
         p.speed < 110 &&
         p.distance < 100 &&
         (p.speed - tracklog.points[Math.max(i - 1, 0)].speed) < 40
