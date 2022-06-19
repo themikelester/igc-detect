@@ -9,6 +9,8 @@ const webpack = require('webpack');
 const COMMIT_HASH = gitRevision.commithash();
 const GITHUB_URL = 'https://github.com/themikelester/igc-detect';
 const GTAG_ID = 'Some Google Analytics ID';
+const WEB_DESC = 'Detect launch locations within paragliding tracklog(s)'
+const WEB_TITLE = 'IGC Detect'
 
 module.exports = {
   entry: {
@@ -55,12 +57,15 @@ module.exports = {
       chunks: ['main'],
       filename: 'index.html',
       template: './src/index.html',
-      gtagId: GTAG_ID
+      gtagId: GTAG_ID,
+      title: WEB_TITLE,
+      desc: WEB_DESC,
     }),
     new HtmlWebpackPlugin({
       chunks: ['embed'],
       filename: 'embed.html',
       template: './src/embed.html',
+      title: WEB_TITLE,
     }),
   ],
 };
