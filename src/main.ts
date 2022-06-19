@@ -6,6 +6,8 @@ import * as L from "leaflet";
 import { parseIGC } from './igc';
 import { createGpx } from './gpx';
 
+const kShowLandings = false;
+
 class Main {
     public paused: boolean = false;
     public tracklogs: Tracklog[] = [];
@@ -133,12 +135,15 @@ class Main {
                     .addTo(this.tracklogGroup);
             }
 
-            for (let i = 0; i < tracklog.landings.length; i++) {
-                const point = tracklog.points[tracklog.landings[i]];
-                landingPoints.push(point);
-                L.marker([point.latitude, point.longitude], { icon: this.landingIcon })
-                    .on('click', e => onMarkerClicked(tracklog, tracklog.landings[i]))
-                    .addTo(this.tracklogGroup);
+            if( kShowLandings )
+            {
+                for (let i = 0; i < tracklog.landings.length; i++) {
+                    const point = tracklog.points[tracklog.landings[i]];
+                    landingPoints.push(point);
+                    L.marker([point.latitude, point.longitude], { icon: this.landingIcon })
+                        .on('click', e => onMarkerClicked(tracklog, tracklog.landings[i]))
+                        .addTo(this.tracklogGroup);
+                }
             }
 
             const fullTrack = drawTrackSegment(tracklog, 0, tracklog.points.length, 'red');
